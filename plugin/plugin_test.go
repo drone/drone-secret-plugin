@@ -4,10 +4,159 @@
 
 package plugin
 
-import "testing"
+import (
+	"context"
+	"testing"
+
+	"github.com/drone/drone-go/drone"
+	"github.com/drone/drone-go/plugin/secret"
+
+	"github.com/google/go-cmp/cmp"
+)
+
+var noContext = context.Background()
 
 func TestPlugin(t *testing.T) {
-	t.Skip()
+	secrets := []*Secret{
+		{
+			Name:   "username",
+			Value:  "root",
+			Repos:  []string{},
+			Events: []string{},
+		},
+		{
+			Name:   "password",
+			Value:  "correct-horse-battery-staple",
+			Repos:  []string{},
+			Events: []string{},
+		},
+	}
+	req := &secret.Request{
+		Name:  "username",
+		Repo:  drone.Repo{},
+		Build: drone.Build{},
+	}
+	plugin := New(secrets)
+	got, err := plugin.Find(noContext, req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	want := &drone.Secret{
+		Name: "username",
+		Data: "root",
+		Pull: true,
+		Fork: true,
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("Unexpected secret")
+		t.Logf(diff)
+	}
+}
+
+func TestPlugin_Match(t *testing.T) {
+	secrets := []*Secret{
+		{
+			Name:   "username",
+			Value:  "root",
+			Repos:  []string{"octocat/*"},
+			Events: []string{},
+		},
+	}
+	req := &secret.Request{
+		Name:  "username",
+		Repo:  drone.Repo{Slug: "octocat/hello-world"},
+		Build: drone.Build{Event: "push"},
+	}
+	plugin := New(secrets)
+	got, err := plugin.Find(noContext, req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	want := &drone.Secret{
+		Name: "username",
+		Data: "root",
+		Pull: true,
+		Fork: true,
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("Unexpected secret")
+		t.Logf(diff)
+	}
+}
+
+func TestPlugin_NoMatch(t *testing.T) {
+	secrets := []*Secret{
+		{
+			Name:  "username",
+			Value: "root",
+		},
+	}
+	req := &secret.Request{
+		Name:  "password",
+		Repo:  drone.Repo{Slug: "octocat/hello-world"},
+		Build: drone.Build{Event: "push"},
+	}
+	plugin := New(secrets)
+	got, err := plugin.Find(noContext, req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if got != nil {
+		t.Errorf("Expect nil secret due to event mismatch")
+	}
+}
+
+func TestPlugin_NoMatch_Repo(t *testing.T) {
+	secrets := []*Secret{
+		{
+			Name:   "username",
+			Value:  "root",
+			Repos:  []string{"octocat/*"},
+			Events: []string{},
+		},
+	}
+	req := &secret.Request{
+		Name:  "username",
+		Repo:  drone.Repo{Slug: "spaceghost/hello-world"},
+		Build: drone.Build{Event: "push"},
+	}
+	plugin := New(secrets)
+	got, err := plugin.Find(noContext, req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if got != nil {
+		t.Errorf("Expect nil secret due to repository mismatch")
+	}
+}
+
+func TestPlugin_NoMatch_Event(t *testing.T) {
+	secrets := []*Secret{
+		{
+			Name:   "username",
+			Value:  "root",
+			Repos:  []string{"octocat/*"},
+			Events: []string{"pull_request"},
+		},
+	}
+	req := &secret.Request{
+		Name:  "username",
+		Repo:  drone.Repo{Slug: "octocat/hello-world"},
+		Build: drone.Build{Event: "push"},
+	}
+	plugin := New(secrets)
+	got, err := plugin.Find(noContext, req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if got != nil {
+		t.Errorf("Expect nil secret due to event mismatch")
+	}
 }
 
 func TestMatch(t *testing.T) {
