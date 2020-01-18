@@ -35,7 +35,7 @@ func (p *plugin) Find(ctx context.Context, req *secret.Request) (*drone.Secret, 
 
 		// if the secret does not match the repository name,
 		// build event, or branch, skip.
-		if !match(req.Repo.Slug, secret.Events) {
+		if !match(req.Build.Event, secret.Events) {
 			continue
 		}
 		if !match(req.Repo.Slug, secret.Repos) {
