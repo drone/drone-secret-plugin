@@ -1,4 +1,4 @@
-This plugin provides global secrets for use in your pipelines. This plugin is a direct port of the global secret file in Drone 0.8. _Please note this project requires Drone server version 1.4 or higher._
+This extension provides global secrets for use in your pipelines. This extension is a direct port of the global secret file in Drone 0.8. _Please note this project requires Drone server version 1.4 or higher._
 
 ## Secret File
 
@@ -36,7 +36,7 @@ $ docker run -d \
   --name=secrets drone/secret-plugin
 ```
 
-Update your Drone server configuration to include the plugin address and the shared secret.
+Update your Drone __runner__ configuration to include the extension address and the shared secret.
 
 ```text
 DRONE_SECRET_PLUGIN_ENDPOINT=http://1.2.3.4:3000
